@@ -1,10 +1,10 @@
 {
-    "name": "adamkearsley/convert-migrations",
-    "description": "Artisan command to convert your current SQL database schema into a Laravel 4 Migration file.",
+    "name": "d3vr/db2migrations",
+    "description": "Artisan command to convert your current SQL database schema into Laravel 5.4.* Migration files (one for each table).",
     "authors": [
         {
-            "name": "Adam Kearsley",
-            "email": "adam@email.com"
+            "name": "Fayçal Mitidji",
+            "email": "d3vr@mitidji.com"
         }
     ],
     "require": {
@@ -14,7 +14,7 @@
     },
     "autoload": {
         "psr-0": {
-            "Adamkearsley\\ConvertMigrations": "src/"
+            "d3vr\\DB2Migrations": "src/"
         }
     },
     "minimum-stability": "stable"

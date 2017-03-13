@@ -1,8 +1,8 @@
-<?php namespace Adamkearsley\ConvertMigrations;
+<?php namespace d3vr\DB2Migrations;
 
 use Illuminate\Support\ServiceProvider;
 
-class ConvertMigrationsServiceProvider extends ServiceProvider {
+class DB2MigrationsServiceProvider extends ServiceProvider {
 
     /**
      * Indicates if loading of the provider is deferred.

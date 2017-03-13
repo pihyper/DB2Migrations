@@ -1,4 +1,4 @@
-<?php namespace Adamkearsley\ConvertMigrations;
+<?php namespace d3vr\DB2Migrations;
 
 use DB;
 use Illuminate\Support\Str;
@@ -7,12 +7,9 @@ class SqlMigrations
 {
     private static $ignore = array('migrations');
     private static $database = "";
-    private static $migrations = false;
-    private static $schema = array();
     private static $selects = array('column_name as Field', 'column_type as Type', 'is_nullable as Null', 'column_key as Key', 'column_default as Default', 'extra as Extra', 'data_type as Data_Type');
     private static $instance;
-    private static $up = "";
-    private static $down = "";
+    private static $containers = [];
  
     private static function getTables()
     {
@@ -46,93 +43,44 @@ class SqlMigrations
                 ->get();
     }
  
-    private static function compileSchema()
-    {
-        $upSchema = "";
-        $downSchema = "";
-        $newSchema = "";
-        foreach (self::$schema as $name => $values) {
-            if (in_array($name, self::$ignore)) {
-                continue;
-            }
-            $upSchema .= "
-//
-// NOTE -- {$name}
-// --------------------------------------------------
- 
-{$values['up']}";
-            if ( $values['down'] !== "" ) {
-            $downSchema .= "
-{$values['down']}";
-            }
-        }
- 
-        $schema = "<?php
- 
-//
-// NOTE Migration Created: " . date("Y-m-d H:i:s") . "
-// --------------------------------------------------
- 
-class Create" . str_replace('_', '', Str::title(self::$database)) . "Database {
-//
-// NOTE - Make changes to the database.
-// --------------------------------------------------
- 
-public function up()
-{
-" . $upSchema . "
-" . self::$up . "
-}
- 
-//
-// NOTE - Revert the changes to the database.
-// --------------------------------------------------
- 
-public function down()
-{
-" . $downSchema . "
-" . self::$down . "
-}
-}";
- 
-        return $schema;
-    }
- 
-    public function up($up)
-    {
-        self::$up = $up;
-        return self::$instance;
-    }
- 
-    public function down($down)
-    {
-        self::$down = $down;
-        return self::$instance;
-    }
- 
     public function ignore($tables)
     {
         self::$ignore = array_merge($tables, self::$ignore);
         return self::$instance;
     }
  
-    public function migrations()
-    {
-        self::$migrations = true;
-        return self::$instance;
-    }
- 
     public function write()
     {
-        $schema = self::compileSchema();
-        $filename = date('Y_m_d_His') . "_create_" . self::$database . "_database.php";
-        $path = app()->databasePath().'/migrations/';
-        file_put_contents($path.$filename, $schema);
-    }
- 
-    public function get()
-    {
-        return self::compileSchema();
+        // Generate a migration file for each table
+        foreach(self::$containers as $table => $values){
+            $content = 
+            "<?php\n".
+
+            "use Illuminate\Support\Facades\Schema;\n".
+            "use Illuminate\Database\Schema\Blueprint;\n".
+            "use Illuminate\Database\Migrations\Migration;\n".
+
+            "//\n".
+            "// NOTE Migration Created: " . date("Y-m-d H:i:s").
+            "// --------------------------------------------------\n\n".
+             
+            "class Create" . str_replace('_', '', Str::title($table)) . "Table extends Migration {\n\n".
+             
+            "\tpublic function up()\n".
+            "\t{\n".
+            "{$values['up']}".
+            "\t}\n".
+            "\n".
+            "\tpublic function down()\n".
+            "\t{\n".
+            "{$values['down']}\n".
+            "\t}\n".
+            "}";
+
+            $filename = date('Y_m_d_His') . "_create_" . $table . "table.php";
+            $path = app()->databasePath().'/migrations/';
+            file_put_contents($path.$filename, $content);
+        }
     }
  
     public function convert($database)
@@ -142,14 +90,17 @@ public function down()
         self::$database = $database;
         $table_headers = array('Field', 'Type', 'Null', 'Key', 'Default', 'Extra');
         $tables = self::getTables();
+        
+
         foreach ($tables as $key => $value) {
             if (in_array($value->table_name, self::$ignore)) {
                 continue;
             }
+            self::$containers[$value->table_name] = ["up"=>"", "down"=>""];
  
             $downStack[] = $value->table_name;
-            $down = "Schema::drop('{$value->table_name}');";
-            $up = "Schema::create('{$value->table_name}', function($" . "table) {\n";
+            self::$containers[$value->table_name]["down"] = "\t\tSchema::drop('{$value->table_name}');";
+            self::$containers[$value->table_name]["up"] = "\t\tSchema::create('{$value->table_name}', function($" . "table) {\n";
             $tableDescribes = self::getTableDescribes($value->table_name);
             foreach ($tableDescribes as $values) {
                 $method = "";
@@ -157,7 +108,7 @@ public function down()
                 $type = $para > -1 ? substr($values->Type, 0, $para) : $values->Type;
                 $numbers = "";
                 $nullable = $values->Null == "NO" ? "" : "->nullable()";
-                $default = empty($values->Default) ? "" : "->default(\"{$values->Default}\")";
+                $default = empty($values->Default) ? "" : "->default(DB::raw(\"{$values->Default}\"))";
                 $unsigned = strpos($values->Type, "unsigned") === false ? '' : '->unsigned()';
                 $unique = $values->Key == 'UNI' ? "->unique()" : "";
                 $choices = '';
@@ -216,14 +167,10 @@ public function down()
                 if ($values->Key == 'PRI') {
                     $method = 'increments';
                 }
-                $up .= " $" . "table->{$method}('{$values->Field}'{$choices}{$numbers}){$nullable}{$default}{$unsigned}{$unique};\n";
+                self::$containers[$value->table_name]["up"] .= "\t\t\t$" . "table->{$method}('{$values->Field}'{$choices}{$numbers}){$nullable}{$default}{$unsigned}{$unique};\n";
             }
  
-            $up .= " });\n\n";
-            self::$schema[$value->table_name] = array(
-                'up' => $up,
-                'down' => $down
-            );
+            self::$containers[$value->table_name]["up"] .= "\t\t});\n\n";
         }
 
  
@@ -231,16 +178,12 @@ public function down()
         $tableForeigns = self::getForeignTables();
         if (sizeof($tableForeigns) !== 0) {
             foreach ($tableForeigns as $key => $value) {
-                $up = "Schema::table('{$value->TABLE_NAME}', function($" . "table) {\n";
+                self::$containers[$value->table_name]["up"] = "Schema::table('{$value->TABLE_NAME}', function($" . "table) {\n";
                 $foreign = self::getForeigns($value->TABLE_NAME);
                 foreach ($foreign as $k => $v) {
-                    $up .= " $" . "table->foreign('{$v->COLUMN_NAME}')->references('{$v->REFERENCED_COLUMN_NAME}')->on('{$v->REFERENCED_TABLE_NAME}');\n";
+                    self::$containers[$value->table_name]["up"] .= " $" . "table->foreign('{$v->COLUMN_NAME}')->references('{$v->REFERENCED_COLUMN_NAME}')->on('{$v->REFERENCED_TABLE_NAME}');\n";
                 }
-                $up .= " });\n\n";
-                self::$schema[$value->TABLE_NAME . '_foreign'] = array(
-                    'up' => $up,
-                    'down' => ( ! in_array($value->TABLE_NAME, $downStack) ) ? $down : "",
-                );
+                self::$containers[$value->table_name]["up"] .= " });\n\n";
             }
         }
  

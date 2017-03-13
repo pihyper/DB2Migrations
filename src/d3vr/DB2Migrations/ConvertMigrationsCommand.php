@@ -1,4 +1,4 @@
-<?php namespace Adamkearsley\ConvertMigrations;
+<?php namespace d3vr\DB2Migrations;
 
 use Illuminate\Console\Command;
 
