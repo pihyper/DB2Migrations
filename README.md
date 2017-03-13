@@ -1,7 +1,7 @@
 # DB2Migrations
 
 This is a fork of [adamkearsley/laravel-convert-migrations](adamkearsley/laravel-convert-migrations):
-* It adds support for **Laravel 5.4.\***.
+* It adds support for **Laravel 5.4.***.
 * Fixes some bugs (e.g: timestamp default values not working).
 * Each table now has it's own migration file, instead of one file containing all the migrations.
 
