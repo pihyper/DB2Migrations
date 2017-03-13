@@ -2,7 +2,7 @@
 
 use Illuminate\Console\Command;
 
-class ConvertMigrationsCommand extends Command {
+class DB2MigrationsCommand extends Command {
 
     /**
      * The console command name.

@@ -27,7 +27,7 @@ class DB2MigrationsServiceProvider extends ServiceProvider {
      */
     public function register()
     {
-        $this->app['artisan.convert.migrations'] = $this->app->share(function($app) {
+        $this->app->singleton('artisan.convert.migrations', function($app) {
             return new ConvertMigrationsCommand;
         });
 

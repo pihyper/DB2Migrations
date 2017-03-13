@@ -19,7 +19,7 @@ This is an artisan command to convert your current SQL database schema into Lara
 }
 ```
 
-2. Add `'d3vr\DB2Migrations\DB2MigrationsServiceProvider::class'` to your `config/app.php` file, inside the `providers` array.
+2. Add `d3vr\DB2Migrations\DB2MigrationsServiceProvider::class` to your `config/app.php` file, inside the `providers` array.
 
 ## Usage
 
