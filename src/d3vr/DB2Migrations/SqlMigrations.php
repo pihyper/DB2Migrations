@@ -77,7 +77,7 @@ class SqlMigrations
             "\t}\n".
             "}";
 
-            $filename = date('Y_m_d_His') . "_create_" . $table . "table.php";
+            $filename = date('Y_m_d_His') . "_create_" . $table . "_table.php";
             $path = app()->databasePath().'/migrations/';
             file_put_contents($path.$filename, $content);
         }
