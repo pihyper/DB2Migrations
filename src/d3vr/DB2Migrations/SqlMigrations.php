@@ -10,6 +10,7 @@ class SqlMigrations
     private static $selects = array('column_name as Field', 'column_type as Type', 'is_nullable as Null', 'column_key as Key', 'column_default as Default', 'extra as Extra', 'data_type as Data_Type');
     private static $instance;
     private static $containers = [];
+    private static $foreignContainer = "";
  
     private static function getTables()
     {
@@ -29,7 +30,7 @@ class SqlMigrations
         return DB::table('information_schema.KEY_COLUMN_USAGE')
                 ->where('CONSTRAINT_SCHEMA', '=', self::$database)
                 ->where('REFERENCED_TABLE_SCHEMA', '=', self::$database)
-                ->select('TABLE_NAME')->distinct()
+                ->select('TABLE_NAME as table_name')->distinct()
                 ->get();
     }
  
@@ -53,15 +54,16 @@ class SqlMigrations
     {
         // Generate a migration file for each table
         foreach(self::$containers as $table => $values){
+            $timestamp = date("Y_m_d_His");
             $content = 
             "<?php\n".
 
             "use Illuminate\Support\Facades\Schema;\n".
             "use Illuminate\Database\Schema\Blueprint;\n".
-            "use Illuminate\Database\Migrations\Migration;\n".
+            "use Illuminate\Database\Migrations\Migration;\n\n".
 
             "//\n".
-            "// NOTE Migration Created: " . date("Y-m-d H:i:s").
+            "// NOTE Migration Created: " . date("Y-m-d H:i:s") . "\n".
             "// --------------------------------------------------\n\n".
              
             "class Create" . str_replace('_', '', Str::title($table)) . "Table extends Migration {\n\n".
@@ -74,10 +76,42 @@ class SqlMigrations
             "\tpublic function down()\n".
             "\t{\n".
             "{$values['down']}\n".
+            "\t}\n".    
+            "}";
+
+            $filename = $timestamp . "_create_" . $table . "_table.php";
+            $path = app()->databasePath().'/migrations/';
+            file_put_contents($path.$filename, $content);
+        }
+
+        // Create the foreign keys
+        if(self::$foreignContainer!=""){
+            $timestamp = \Carbon\Carbon::now()->addMinutes(5)->tz('GMT+1')->format('Y_m_d_His');
+
+            $content = 
+            "<?php\n".
+
+            "use Illuminate\Support\Facades\Schema;\n".
+            "use Illuminate\Database\Schema\Blueprint;\n".
+            "use Illuminate\Database\Migrations\Migration;\n\n".
+
+            "//\n".
+            "// NOTE Migration Created: " . date("Y-m-d H:i:s") . "\n".
+            "// --------------------------------------------------\n\n".
+             
+            "class AddForeignKeys extends Migration {\n\n".
+             
+            "\tpublic function up()\n".
+            "\t{\n".
+            self::$foreignContainer.
+            "\t}\n".
+            "\n".
+            "\tpublic function down()\n".
+            "\t{\n\n".
             "\t}\n".
             "}";
 
-            $filename = date('Y_m_d_His') . "_create_" . $table . "_table.php";
+            $filename = $timestamp . "_add_foreign_keys.php";
             $path = app()->databasePath().'/migrations/';
             file_put_contents($path.$filename, $content);
         }
@@ -178,12 +212,12 @@ class SqlMigrations
         $tableForeigns = self::getForeignTables();
         if (sizeof($tableForeigns) !== 0) {
             foreach ($tableForeigns as $key => $value) {
-                self::$containers[$value->table_name]["up"] = "Schema::table('{$value->TABLE_NAME}', function($" . "table) {\n";
-                $foreign = self::getForeigns($value->TABLE_NAME);
+                self::$foreignContainer .= "\t\tSchema::table('{$value->table_name}', function($" . "table) {\n";
+                $foreign = self::getForeigns($value->table_name);
                 foreach ($foreign as $k => $v) {
-                    self::$containers[$value->table_name]["up"] .= " $" . "table->foreign('{$v->COLUMN_NAME}')->references('{$v->REFERENCED_COLUMN_NAME}')->on('{$v->REFERENCED_TABLE_NAME}');\n";
+                    self::$foreignContainer .= "\t\t\t$" . "table->foreign('{$v->COLUMN_NAME}')->references('{$v->REFERENCED_COLUMN_NAME}')->on('{$v->REFERENCED_TABLE_NAME}');\n";
                 }
-                self::$containers[$value->table_name]["up"] .= " });\n\n";
+                self::$foreignContainer .= "\t\t});\n\n";
             }
         }
  
