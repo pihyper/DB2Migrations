@@ -1,4 +1,4 @@
-<?php namespace d3vr\DB2Migrations;
+<?php namespace pihyper\DB2Migrations;
 
 use Illuminate\Console\Command;
 

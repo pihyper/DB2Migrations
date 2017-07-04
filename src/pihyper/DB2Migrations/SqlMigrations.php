@@ -1,4 +1,4 @@
-<?php namespace d3vr\DB2Migrations;
+<?php namespace pihyper\DB2Migrations;
 
 use DB;
 use Illuminate\Support\Str;
@@ -11,12 +11,12 @@ class SqlMigrations
     private static $instance;
     private static $containers = [];
     private static $foreignContainer = "";
- 
+
     private static function getTables()
     {
         return DB::select('SELECT table_name FROM information_schema.tables WHERE Table_Type="'."BASE TABLE".'" and table_schema="' . self::$database . '"');
     }
- 
+
     private static function getTableDescribes($table)
     {
         return DB::table('information_schema.columns')
@@ -24,7 +24,7 @@ class SqlMigrations
                 ->where('table_name', '=', $table)
                 ->get(self::$selects);
     }
- 
+
     private static function getForeignTables()
     {
         return DB::table('information_schema.KEY_COLUMN_USAGE')
@@ -33,7 +33,7 @@ class SqlMigrations
                 ->select('TABLE_NAME as table_name')->distinct()
                 ->get();
     }
- 
+
     private static function getForeigns($table)
     {
         return DB::table('information_schema.KEY_COLUMN_USAGE')
@@ -43,19 +43,19 @@ class SqlMigrations
                 ->select('COLUMN_NAME', 'REFERENCED_TABLE_NAME', 'REFERENCED_COLUMN_NAME')
                 ->get();
     }
- 
+
     public function ignore($tables)
     {
         self::$ignore = array_merge($tables, self::$ignore);
         return self::$instance;
     }
- 
+
     public function write()
     {
         // Generate a migration file for each table
         foreach(self::$containers as $table => $values){
             $timestamp = date("Y_m_d_His");
-            $content = 
+            $content =
             "<?php\n".
 
             "use Illuminate\Support\Facades\Schema;\n".
@@ -65,9 +65,9 @@ class SqlMigrations
             "//\n".
             "// NOTE Migration Created: " . date("Y-m-d H:i:s") . "\n".
             "// --------------------------------------------------\n\n".
-             
+
             "class Create" . str_replace('_', '', Str::title($table)) . "Table extends Migration {\n\n".
-             
+
             "\tpublic function up()\n".
             "\t{\n".
             "{$values['up']}".
@@ -76,7 +76,7 @@ class SqlMigrations
             "\tpublic function down()\n".
             "\t{\n".
             "{$values['down']}\n".
-            "\t}\n".    
+            "\t}\n".
             "}";
 
             $filename = $timestamp . "_create_" . $table . "_table.php";
@@ -88,7 +88,7 @@ class SqlMigrations
         if(self::$foreignContainer!=""){
             $timestamp = \Carbon\Carbon::now()->addMinutes(5)->tz('GMT+1')->format('Y_m_d_His');
 
-            $content = 
+            $content =
             "<?php\n".
 
             "use Illuminate\Support\Facades\Schema;\n".
@@ -98,9 +98,9 @@ class SqlMigrations
             "//\n".
             "// NOTE Migration Created: " . date("Y-m-d H:i:s") . "\n".
             "// --------------------------------------------------\n\n".
-             
+
             "class AddForeignKeys extends Migration {\n\n".
-             
+
             "\tpublic function up()\n".
             "\t{\n".
             self::$foreignContainer.
@@ -116,7 +116,7 @@ class SqlMigrations
             file_put_contents($path.$filename, $content);
         }
     }
- 
+
     public function convert($database)
     {
         $downStack = array();
@@ -124,14 +124,14 @@ class SqlMigrations
         self::$database = $database;
         $table_headers = array('Field', 'Type', 'Null', 'Key', 'Default', 'Extra');
         $tables = self::getTables();
-        
+
 
         foreach ($tables as $key => $value) {
             if (in_array($value->table_name, self::$ignore)) {
                 continue;
             }
             self::$containers[$value->table_name] = ["up"=>"", "down"=>""];
- 
+
             $downStack[] = $value->table_name;
             self::$containers[$value->table_name]["down"] = "\t\tSchema::drop('{$value->table_name}');";
             self::$containers[$value->table_name]["up"] = "\t\tSchema::create('{$value->table_name}', function($" . "table) {\n";
@@ -203,11 +203,11 @@ class SqlMigrations
                 }
                 self::$containers[$value->table_name]["up"] .= "\t\t\t$" . "table->{$method}('{$values->Field}'{$choices}{$numbers}){$nullable}{$default}{$unsigned}{$unique};\n";
             }
- 
+
             self::$containers[$value->table_name]["up"] .= "\t\t});\n\n";
         }
 
- 
+
         // add foreign constraints, if any
         $tableForeigns = self::getForeignTables();
         if (sizeof($tableForeigns) !== 0) {
@@ -220,7 +220,7 @@ class SqlMigrations
                 self::$foreignContainer .= "\t\t});\n\n";
             }
         }
- 
+
         return self::$instance;
     }
 }
