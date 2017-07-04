@@ -1,5 +1,5 @@
 {
-    "name": "d3vr/db2migrations",
+    "name": "pihyper/db2migrations",
     "description": "Artisan command to convert your current SQL database schema into Laravel 5.4.* Migration files (one for each table).",
     "authors": [
         {
@@ -15,7 +15,7 @@
     },
     "autoload": {
         "psr-0": {
-            "d3vr\\DB2Migrations": "src/"
+            "pihyper\\DB2Migrations": "src/"
         }
     },
     "minimum-stability": "stable"
