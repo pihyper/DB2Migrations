@@ -15,11 +15,11 @@ This is an artisan command to convert your current SQL database schema into Lara
 
 ```json
 "require": {
-    "d3vr/db2migrations": "dev-master"
+    "pihyper/db2migrations": "dev-master"
 }
 ```
 
-2. Add `d3vr\DB2Migrations\DB2MigrationsServiceProvider::class` to your `config/app.php` file, inside the `providers` array.
+2. Add `pihyper\DB2Migrations\DB2MigrationsServiceProvider::class` to your `config/app.php` file, inside the `providers` array.
 
 ## Usage
 
