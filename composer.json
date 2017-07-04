@@ -15,7 +15,7 @@
     },
     "autoload": {
         "psr-0": {
-            "pihyper\\DB2Migrations": "src/"
+            "Pihyper\\DB2Migrations": "src/"
         }
     },
     "minimum-stability": "stable"
